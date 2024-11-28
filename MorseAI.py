@@ -137,5 +137,64 @@ class FlashlightMorseReceiver:
             except Exception as e:
                 print(f"Error while recording and buffering: {str(e)}")
                 time.sleep(0.1)
-                
+    
+    def decode_prediction(self, prediction):
+        #Decode model prediction to morse code and then text
         
+        THRESHOLD = 0.6
+        symbols = []
+        
+        for prob in prediction:
+            if prob[0] > THRESHOLD:
+                symbols.append('.')
+            elif prob[1] > THRESHOLD:
+                symbols.append('-')
+            elif prob[2] > THRESHOLD:
+                symbols.append(' ')
+                
+        #Convert to text:
+        morse_sequence = ''.join(symbols)
+        words = morse_sequence.split('   ')  #3 spaces between words
+        
+        decoded_text = ''
+        reverse_morse = {v:k for k, v in MORSE_CODE.items()}
+        
+        for word in words:
+            chars = word.split(' ')
+            for char in chars:
+                if char in reverse_morse:
+                    decoded_text += reverse_morse[char]
+            decoded_text += ' '
+            
+        print(f"Decoded text: {decoded_text.strip()}")
+        
+    def generate_training_data(num_samples=1000):
+        """Generate synthetic training data for the model"""
+        X = []  # Video sequences
+        y = []  # Labels
+        
+        # Generate sequences
+        for _ in range(num_samples):
+            # Create empty sequence
+            sequence = np.zeros((100, 64, 64, 1))
+            
+            # Randomly choose dot, dash, or space
+            symbol_type = np.random.choice(['dot', 'dash', 'space'])
+            
+            if symbol_type == 'dot':
+                # Create short flash pattern
+                sequence[10:15, 20:40, 20:40, 0] = 1.0
+                y.append([1, 0, 0])
+            elif symbol_type == 'dash':
+                # Create long flash pattern
+                sequence[10:25, 20:40, 20:40, 0] = 1.0
+                y.append([0, 1, 0])
+            else:
+                # Create space (no flash)
+                y.append([0, 0, 1])
+                
+            X.append(sequence)
+        
+        return np.array(X), np.array(y)
+            
+            
